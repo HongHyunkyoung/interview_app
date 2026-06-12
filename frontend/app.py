@@ -1,7 +1,7 @@
 import sys
 import os
-import time
 import streamlit as st
+from api_client import render_streaming_answer
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -15,34 +15,23 @@ def get_system_prompt(role_key: str) -> str:
     """선택한 면접관 유형의 시스템 프롬프트를 반환합니다."""
     return get_role(role_key).system_prompt
 
-def generate_coach_reply(user_text: str, role_key: str) -> str:
-    """선택한 면접관 유형에 맞는 임시 코치 응답을 만듭니다."""
-    system_prompt = get_system_prompt(role_key)
-    role_name = ROLES[role_key].name
-    
-    return f"[{role_name}] 다음 관점으로 피드백합니다: {system_prompt[:30]}..."
-
-def fake_stream_generator(reply_text: str):
-    """단어 단위의 순차 출력하는 임시 generator입니다."""
-    words = reply_text.split()
-    for word in words:
-        time.sleep(0.08)
-        yield word + " "
-
 def handle_user_input(user_text: str) -> None:
     """사용자 입력을 받아 메시지 목록에 저장합니다."""
     # 사용자 메시지 저장
     st.session_state.messages.append({"role": "user", "content": user_text})
 
-    # 임시 코치 응답 생성
-    reply_text = generate_coach_reply(user_text, st.session_state.selected_role)
-
-    # st.write_stream으로 순차 출력
+    # 말풍선 안에 placeholder 만들기
     with st.chat_message("assistant"):
-        response_text = st.write_stream(fake_stream_generator(reply_text))
+        placeholder = st.empty()
+        full_response = render_streaming_answer(
+            placeholder=placeholder,
+            question=user_text,
+            answer=user_text,
+            role=st.session_state.get("selected_role", "general"),
+        )
 
     # 출력된 텍스트를 메시지 기록에 저장
-    st.session_state.messages.append({"role": "assistant", "content": response_text})
+    st.session_state.messages.append({"role": "assistant", "content": full_response})
 
 st.set_page_config(
     page_title="AI 면접 코치",
@@ -105,13 +94,6 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.write(message["content"])
 
-def handle_user_input(user_text: str) -> None:
-    """사용자 입력을 받아 메시지 목록에 저장합니다."""
-    st.session_state.messages.append({"role": "user", "content": user_text})
-    st.session_state.messages.append({
-        "role": "assistant",
-        "content": "면접 답변을 확인했습니다. (임시 응답)"
-    })
     
 user_input = st.chat_input("면접 답변을 입력해 주세요.")
 if user_input:
