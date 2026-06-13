@@ -21,7 +21,7 @@ load_dotenv()
 router = APIRouter(prefix="/interview", tags=["interview"])
 
 class InterviewStreamRequest(BaseModel):
-    question: str = Field(..., min_length=1, examples=["자기소개르 해 주세요."])
+    question: str = Field(..., min_length=1, examples=["자기소개를 해 주세요."])
     answer: str = Field(..., min_length=1, examples=["안녕하세요, 저는 ..."])
     role: str = Field(default="general", examples=["technical"])
     session_id: str | None = Field(default=None)
@@ -52,12 +52,12 @@ async def interview_event_generator(
         f"[지원자 답변]\n{request.answer}\n\n"
         "위 답변을 면접관 역할에 맞게 평가하고 개선 피드백을 제공해 주세요."
     )
-    
+
     stream = await client.chat.completions.create(
         model=request.model,
         messages=[
-            {"role": "system", "content":system_prompt},
-            {"role": "user", "content": f"질문: {request.question}\n답변: {request.answer}"},
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content},
         ],
         stream=True,
     )
@@ -111,7 +111,7 @@ async def get_interview_history(session_id: str) -> HistoryResponse:
         messages = get_history(session_id)
         role = get_session_role(session_id)
     except KeyError:
-        raise HTTPException(status_code=404, detail="session not")
+        raise HTTPException(status_code=404, detail="session not found")
     
     return HistoryResponse(
         session_id=session_id,

@@ -138,14 +138,14 @@ evaluation_agent = Agent(
 feedback_agent = Agent(
     name="피드백 Specialist",
     model=MODEL_NAME,
-    handoff_description="다변 개선 행동, 말히가 전략, 다음 다변 준비 요청을 처리합니다.",
+    handoff_description="답변 개선 행동, 말하기 전략, 다음 답변 준비 요청을 처리합니다.",
     instructions=(
         "당신은 한국어 면접 답변 개선 전문가입니다 "
         "사용자가 피드백 요청하면 반드시 tool_make_feedback 도구를 사용하세요. "
         "다음 답변에서 바로 고칠 행동을 구체적으로 제안하세요."
         "점수 산정은 평가 Specialist에게 맡기세요."
     ),
-    tools=[tool_score_answer],
+    tools=[tool_make_feedback],
 )
 
 # ======
@@ -160,7 +160,7 @@ triage_agent = Agent(
         "사용자 요청을 읽고 가장 적합한 전문가에게 넘기세요. "
         "- 면접 질문 생성/추천 -> 질문출제 Specialist "
         "- 답변 평가/채점 -> 평가 Specialist"
-        "- 다변 개선/피드백 -> 피드백 Specialist"
+        "- 답변 개선/피드백 -> 피드백 Specialist"
         "직접 긴 답변을 작성하지 말고 반드시 handoff하세요. "
         "한국어로 응답하세요."
     ),

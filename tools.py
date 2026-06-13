@@ -5,7 +5,7 @@ from roles import get_role
 def make_interview_question(role_key: str, difficulty: str = "기초") -> str:
   """
   지원 직무와 난이도를 받아 면접 질문 한 개를 만듭니다.
-  Agrs:
+  Args:
     role_key: 면접관 유형 키. tech, personality, executive, structured
     difficulty: 질문 난이도, 기초 또는 심화
   """
@@ -23,7 +23,7 @@ def make_interview_question(role_key: str, difficulty: str = "기초") -> str:
 def score_answer(answer: str) -> str:
   """
   지원자의 면접 답변을 규칙 기반으로 채점합니다.
-  Agrs:
+  Args:
     answer: 지원자가 작성한 면접 답변 텍스트
   """
   positive_keywords = ["프로젝트", "경험", "사례", "결과", "수치", "개선", "해결"]
@@ -34,7 +34,7 @@ def score_answer(answer: str) -> str:
   elif score >= 2:
     reason = f"기본 구조는 있으나 구체성이 부족합니다. (키워드: {', '.join(found)})"
   else:
-    reason = f"구체적 사례나 결과가 업습니다."
+    reason = f"구체적 사례나 결과가 없습니다."
   return f"{score}/5 - {reason}"
 
 def make_feedback(answer: str) -> str:
@@ -54,7 +54,7 @@ def make_feedback(answer: str) -> str:
     tips.append("본인이 한 행동을 동사 중심으로 말하세요")
 
   if not tips:
-    tips.append("좋은 답변입니다. 시간 제한(2분) 안에 말하는 연스을 추가하세요.")
+    tips.append("좋은 답변입니다. 시간 제한(2분) 안에 말하는 연습을 추가하세요.")
   return "\n".join(f" {i+1}) {tip}" for i, tip in enumerate(tips))
 
 if __name__ == "__main__":

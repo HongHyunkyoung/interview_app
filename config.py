@@ -1,4 +1,4 @@
-"""config.py - 공통 설정: .evn 로딩, 모델명 상수, 환경점검"""
+"""config.py - 공통 설정: .env 로딩, 모델명 상수, 환경점검"""
 
 import os
 from dotenv import load_dotenv
@@ -15,7 +15,7 @@ def ini_env() -> bool:
   return True
 
 # 모델명 상수
-MODEL_NAME = "gpt-5.4-nano"
+MODEL_NAME = "gpt-4o-mini"
 
 if __name__ == "__main__":
   ini_env()
