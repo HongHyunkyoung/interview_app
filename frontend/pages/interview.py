@@ -34,15 +34,22 @@ def handle_user_input(user_text: str) -> None:
     # 말풍선 안에 placeholder 만들기
     with st.chat_message("assistant"):
         placeholder = st.empty()
-        full_response = render_streaming_answer(
-            placeholder=placeholder,
-            question=user_text,
-            answer=user_text,
-            role=st.session_state.get("selected_role", "general"),
-        )
+        try:
+            full_response = render_streaming_answer(
+                placeholder=placeholder,
+                question=user_text,
+                answer=user_text,
+                role=st.session_state.get("selected_role", "general"),
+            )
 
-    # 출력된 텍스트를 메시지 기록에 저장
-    st.session_state.messages.append({"role": "assistant", "content": full_response})
+            # 출력된 텍스트를 메시지 기록에 저장
+            st.session_state.messages.append({"role": "assistant", "content": full_response})
+        except Exception as e:
+            show_api_error(e)
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": "⚠️ 백엔드 연결 오류가 발생했습니다."
+            })
 
 
 # ============================

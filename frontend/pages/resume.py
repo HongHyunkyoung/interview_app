@@ -11,6 +11,9 @@
 """
 
 import streamlit as st
+from docx import Document
+import io
+
 
 settings = st.session_state.get("settings", {})
 
@@ -22,8 +25,24 @@ def read_resume_text(uploaded_file) -> str:
     #파일이 없으면 빈 문자열 반환
     if uploaded_file is None:
         return ""
+    
+    file_name = uploaded_file.name
 
-    text = uploaded_file.read().decode("utf-8")
+    # .txt 파일 처리
+    if file_name.endswith(".txt"):
+        text = uploaded_file.read().decode("utf-8")
+
+    # .docx 파일 처리
+    elif file_name.endswith(".docx"):
+        doc = Document(io.BytesIO(uploaded_file.read()))
+        text = "\n".join([
+            paragraph.text
+            for paragraph in doc.paragraphs
+            if paragraph.text.strip()
+        ])
+    else:
+        st.warning("지원하지 않는 파일 형식입니다.")
+        return ""
 
     if len(text.strip()) < 50:
         st.warning("이력서 내용이 너무 짧습니다. 최소 50자 이상 입력해주세요.")
@@ -34,7 +53,7 @@ def read_resume_text(uploaded_file) -> str:
 #파일 업로드 위젯
 uploaded_file = st.file_uploader(
     "이력서 텍스트 파일을 업로드하세요",
-    type=["txt"]
+    type=["txt", "docx"],
 )
 
 resume_text = read_resume_text(uploaded_file)
@@ -47,7 +66,7 @@ if resume_text:
         disabled=True,
     )
 else:
-    st.info(".txt 형식의 이력서 파일을 업로드해주세요.")
+    st.info(".txt 또는 .docx 형식의 이력서 파일을 업로드해주세요.")
 
 def build_resume_question_request(
     resume_text:str,
