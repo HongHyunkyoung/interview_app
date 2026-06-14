@@ -101,10 +101,40 @@ for message in st.session_state.messages:
         st.write(message["content"])
 
     
-user_input = st.chat_input("면접 답변을 입력해 주세요.")
-if user_input:
-    handle_user_input(user_input)
-    st.rerun()
+# 이력서 기반 질문 모드
+resume_questions = st.session_state.get("resume_questions", [])
+use_resume = st.session_state.get("use_resume_questions", False)
+
+if use_resume and resume_questions:
+    current_index = st.session_state.get("resume_question_index", 0)
+
+    if current_index < len(resume_questions):
+        current_question = resume_questions[current_index]
+
+        st.info(f"📄 이력서 기반 질문 ({current_index + 1}/{len(resume_questions)})")
+        st.subheader(f"❓ {current_question}")
+
+        user_answer = st.chat_input("답변을 입력해 주세요.")
+        if user_answer:
+            handle_user_input(
+                f"질문: {current_question}\n답변: {user_answer}"
+            )
+            st.session_state.resume_question_index = current_index + 1
+            st.rerun()
+
+    else:
+        st.success("🎉 모든 질문에 답변했습니다!")
+        if st.button("처음으로 돌아가기"):
+            st.session_state.use_resume_questions = False
+            st.session_state.resume_question_index = 0
+            st.rerun()
+
+else:
+    # 기존 자유 입력 모드
+    user_input = st.chat_input("면접 답변을 입력해 주세요.")
+    if user_input:
+        handle_user_input(user_input)
+        st.rerun()
     
 # ============================
 # day1-self2 TODO

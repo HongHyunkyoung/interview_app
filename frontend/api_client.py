@@ -43,7 +43,7 @@ def stream_interview_message(
             # data: 접두사 없는 줄 건너뜀
             if not line.startswith("data:"):
                 continue
-            token = line[5:].strip()
+            token = line[6:]
             # 종료 신호 확인
             if token == "[DONE]":
                 break

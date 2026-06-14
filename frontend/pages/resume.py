@@ -235,6 +235,13 @@ if st.button("이력서 기반 질문 생성", disabled=not resume_text):
     render_function_call_result(result)
     st.success(f"✅ {len(questions)}개 질문을 생성했습니다!")
 
+# 면접 연습 시작 버튼 — 질문이 있을 때만 표시
+if st.session_state.get("resume_questions"):
+    if st.button("🎤 면접 연습 시작"):
+        st.session_state.use_resume_questions = True
+        st.session_state.resume_question_index = 0
+        st.switch_page("pages/interview.py")
+
 st.divider()
 render_resume_dashboard()
 
