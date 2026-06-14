@@ -2,6 +2,7 @@ import sys
 import os
 import streamlit as st
 from api_client import render_streaming_answer
+from utils import show_api_error
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 

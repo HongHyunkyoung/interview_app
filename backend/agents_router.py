@@ -61,11 +61,9 @@ async def run_interview_agent_stream(message: str, mode: str):
     else:
         agent = question_agent
 
-    # Runner.run_streamed로 스트림 시작
-    stream_result = Runner.run_streamed(agent, message)
-
-    async for event in stream_result.stream_events():
-        yield event
+    async with Runner.run_streamed(agent, message) as stream_result:
+        async for event in stream_result.stream_events():
+            yield event
 
 async def iter_agent_events(agent_stream) -> AsyncIterator[str]:
     """에이전트 스트림 이벤트를 SSE 형식으로 정리합니다."""

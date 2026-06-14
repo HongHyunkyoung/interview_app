@@ -7,8 +7,6 @@ from fastapi.responses import StreamingResponse
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field
 from backend.sessions import (
-    add_message,
-    clear_session,
     create_session,
     get_history,
     get_session_role,
@@ -30,8 +28,7 @@ class InterviewStreamRequest(BaseModel):
 def get_interview_openai_client() -> AsyncOpenAI:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=500, detail="OPEN_API_KEY is not configured")
+        raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not configured")
     return AsyncOpenAI(api_key=api_key)
 
 ROLE_PROMPTS: dict[str, str] = {

@@ -17,3 +17,6 @@ app.include_router(interview_router)
 app.include_router(agents_router)
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
