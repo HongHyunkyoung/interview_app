@@ -13,12 +13,9 @@
 import streamlit as st
 from docx import Document
 import io
+import os
+from openai import OpenAI
 
-
-settings = st.session_state.get("settings", {})
-
-st.title("이력서 분석")
-st.caption(f"현재 질문 역할: {settings.get('role_preset', '기술 면접')}")
 
 def read_resume_text(uploaded_file) -> str:
     """업로드된 이력서 파일에서 면접 질문 생성용 텍스트를 준비합니다."""
@@ -35,11 +32,22 @@ def read_resume_text(uploaded_file) -> str:
     # .docx 파일 처리
     elif file_name.endswith(".docx"):
         doc = Document(io.BytesIO(uploaded_file.read()))
-        text = "\n".join([
-            paragraph.text
-            for paragraph in doc.paragraphs
-            if paragraph.text.strip()
-        ])
+
+        lines = []
+
+        # 일반 단락 읽기
+        for paragraph in doc.paragraphs:
+            if paragraph.text.strip():
+                lines.append(paragraph.text)
+
+        # 표 안의 텍스트 읽기
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    if cell.text.strip():
+                        lines.append(cell.text)
+
+        text = "\n".join(lines)
     else:
         st.warning("지원하지 않는 파일 형식입니다.")
         return ""
@@ -50,23 +58,42 @@ def read_resume_text(uploaded_file) -> str:
 
     return text
 
-#파일 업로드 위젯
-uploaded_file = st.file_uploader(
-    "이력서 텍스트 파일을 업로드하세요",
-    type=["txt", "docx"],
-)
+def generate_questions_from_resume(
+    resume_text: str,
+    question_count: int,
+    role_preset: str,
+) -> list[str]:
+    """이력서 텍스트로 실제 면접 질문을 생성합니다."""
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-resume_text = read_resume_text(uploaded_file)
+    prompt = f"""
+다음 이력서를 읽고 {role_preset} 관점에서 면접 질문 {question_count}개를 생성해주세요.
 
-if resume_text:
-    st.text_area(
-        "이력서 미리보기 (앞 300자)",
-        value=resume_text[:300] + "...",
-        height=150,
-        disabled=True,
+이력서:
+{resume_text[:3000]}
+
+규칙:
+- 질문만 번호 없이 한 줄씩 작성
+- 이력서 내용을 반영한 구체적인 질문
+- 한국어로 작성
+"""
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": f"당신은 {role_preset} 면접관입니다."},
+            {"role": "user", "content": prompt}
+        ]
     )
-else:
-    st.info(".txt 또는 .docx 형식의 이력서 파일을 업로드해주세요.")
+
+    raw = response.choices[0].message.content
+    questions = [
+        line.strip()
+        for line in raw.strip().split("\n")
+        if line.strip()
+    ]
+    return questions[:question_count]
+
 
 def build_resume_question_request(
     resume_text:str,
@@ -85,15 +112,6 @@ def build_resume_question_request(
         ),
         "role_preset": settings.get("role_preset", "기술 면접"),
     }
-
-# 질문 수 선택
-question_count = st.number_input(
-    "생성할 질문 수",
-    min_value=3,
-    max_value=10,
-    value=5,
-    step=1,
-)
 
 def render_function_call_result(result:dict) ->None:
     """질문 생성 결과와 도구 호출 확인 데이터를 분리해 표시합니다."""
@@ -115,21 +133,6 @@ def render_function_call_result(result:dict) ->None:
         else:
             st.write("호출 없음")
 
-# 테스트용 샘플 결과
-sample_result = {
-    "questions": [
-        "프로젝트에서 FastAPI를 사용한 이유를 설명해 주세요.",
-        "SSE 응답이 끊겼을 때 어떤 순서로 확인하겠습니까?",
-        "Streamlit과 FastAPI를 연결할 때 어떤 어려움이 있었나요?",
-    ],
-    "tool_calls": [
-        {
-            "name": "extract_resume_keywords",
-            "arguments": {"section": "projects"},
-            "result": {"keywords": ["FastAPI", "SSE", "Streamlit"]},
-        }
-    ],
-}
 
 def save_resume_question_state(
         file_name:str,
@@ -141,20 +144,6 @@ def save_resume_question_state(
     st.session_state.resume_question_count = len(questions)
     st.session_state.resume_step4b_done=len(questions) > 0
 
-# 질문 생성 버튼
-if st.button("이력서 기반 질문 생성", disabled=not resume_text):
-    if not resume_text:
-        st.error("이력서를 먼저 업로드해주세요.")
-    else:
-        request = build_resume_question_request(resume_text, question_count)
-
-        # 임시 결과
-        result = sample_result
-
-        questions = result.get("questions", [])
-        save_resume_question_state(uploaded_file.name, questions)
-        render_function_call_result(result)
-        st.success(f"{len(questions)}개 질문을 생성했습니다.")
 
 def render_resume_dashboard()-> None:
     """이력서 기반 질문 생성 결과를 대시보드로 표시합니다."""
@@ -193,8 +182,62 @@ def render_resume_dashboard()-> None:
     progress = min(question_count/10, 1.0)
     st.progress(progress, text=f"목표 달성률: {int(progress * 100)}% (10문제 기준)")
 
+# ============================
+# 화면 구성
+# ============================
+
+st.title("이력서 분석")
+st.caption(f"현재 질물 역할: {st.session_state.get('settings', {}).get('role_preset', '기술 면접')}")
+
+# 파일 업로드
+uploaded_file = st.file_uploader(
+    "이력서 파일을 업로드하세요.",
+    type=["txt", "docx"],
+)
+
+resume_text = read_resume_text(uploaded_file)
+
+if resume_text:
+    st.text_area(
+        "이력서 미리보기 (앞 300자)",
+        value=resume_text[:300] + "...",
+        height=150,
+        disabled=True,
+    )
+else:
+    st.info("📂 .txt 또는 .docx 형식의 이력서 파일을 업로드해주세요.")
+
+# 질문 수 선택
+question_count = st.number_input(
+    "생성할 질문 수",
+    min_value=3,
+    max_value=10,
+    value=5,
+    step=1,
+)
+
+# 질문 생성 버튼
+if st.button("이력서 기반 질문 생성", disabled=not resume_text):
+    with st.spinner("AI가 이력서를 분석하고 질문을 생성하고 있습니다..."):
+        settings = st.session_state.get("settings", {})
+        questions = generate_questions_from_resume(
+            resume_text=resume_text,
+            question_count=int(question_count),
+            role_preset=settings.get("role_preset", "기술 면접"),
+        )
+
+    result = {
+        "questions": questions,
+        "tool_calls": []
+    }
+
+    save_resume_question_state(uploaded_file.name, questions)
+    render_function_call_result(result)
+    st.success(f"✅ {len(questions)}개 질문을 생성했습니다!")
+
 st.divider()
 render_resume_dashboard()
+
 
 # ============================
 # Day 5 self1 연결 메모
